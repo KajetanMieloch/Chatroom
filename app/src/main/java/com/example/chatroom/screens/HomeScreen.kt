@@ -15,6 +15,8 @@ fun HomeScreen(navController: NavController) {
     // Przechowywanie wprowadzonego Room ID
     var roomId = remember { TextFieldValue("") }
 
+
+
     // Główna zawartość ekranu
     Column(
         modifier = Modifier
@@ -23,6 +25,12 @@ fun HomeScreen(navController: NavController) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Button(
+            onClick = { navController.navigate("browseRooms") },
+            modifier = Modifier.fillMaxWidth()) {
+            Text("Browse Rooms")
+        }
+        Spacer(modifier = Modifier.height(16.dp))
         TextField(
             value = roomId,
             onValueChange = { roomId = it },

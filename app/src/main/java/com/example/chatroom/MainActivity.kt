@@ -7,18 +7,16 @@ import com.example.chatroom.navigation.AppNavigation
 import com.example.chatroom.utils.FileUtils
 
 class MainActivity : ComponentActivity() {
-    companion object {
-        lateinit var secretPhrase: String
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Ładowanie lub generowanie secret phrase
-        secretPhrase = FileUtils.loadOrGenerateSecretPhrase(this)
+        // Pobieranie secretPhrase (userId) z pliku lub generowanie nowego
+        val secretPhrase = FileUtils.loadOrGenerateSecretPhrase(this)
 
         setContent {
-            AppNavigation()
+            // Przekazywanie secretPhrase jako userId do AppNavigation
+            AppNavigation(context = this, userId = secretPhrase)
         }
     }
 }
