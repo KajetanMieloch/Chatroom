@@ -18,17 +18,30 @@ fun AppNavigation(context: Context, userId: String) {
     val navController: NavHostController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "home") {
-        composable("home") { HomeScreen(navController) }
-        composable("browseRooms") { BrowseRoomsScreen(navController, context) }
-        composable("createRoom") { CreateRoomScreen(navController) }
-        composable("settings") { SettingsScreen(navController) }
+        composable("home") {
+            HomeScreen(navController)
+        }
+        composable("browseRooms") {
+            BrowseRoomsScreen(navController, context)
+        }
+        composable("createRoom") {
+            CreateRoomScreen(navController)
+        }
+        composable("settings") {
+            SettingsScreen(navController)
+        }
         composable("roomCreated/{message}") { backStackEntry ->
             val message = backStackEntry.arguments?.getString("message") ?: "No message"
             RoomCreatedScreen(navController, message)
         }
         composable("chat/{roomId}") { backStackEntry ->
             val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
-            ChatScreen(navController, roomId, context, userId) // Przekazanie userId
+            ChatScreen(
+                navController = navController,
+                roomId = roomId,
+                context = context,
+                userId = userId
+            )
         }
     }
 }

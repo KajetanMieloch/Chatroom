@@ -2,22 +2,16 @@ package com.example.chatroom.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 
 @Composable
 fun HomeScreen(navController: NavController) {
-    // Przechowywanie wprowadzonego Room ID
-    var roomId = remember { TextFieldValue("") }
+    var roomId by remember { mutableStateOf("") }
 
-
-
-    // Główna zawartość ekranu
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -27,7 +21,8 @@ fun HomeScreen(navController: NavController) {
     ) {
         Button(
             onClick = { navController.navigate("browseRooms") },
-            modifier = Modifier.fillMaxWidth()) {
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Browse Rooms")
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -39,7 +34,7 @@ fun HomeScreen(navController: NavController) {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Button(
-            onClick = { navController.navigate("chat/${roomId.text}") },
+            onClick = { navController.navigate("chat/${roomId}") },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Join Room")

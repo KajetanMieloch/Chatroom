@@ -49,7 +49,7 @@ fun createRoomRequest(context: Context, roomName: String, password: String, call
 
 @Composable
 fun CreateRoomScreen(navController: NavController) {
-    val context = LocalContext.current // Pobierz kontekst
+    val context = LocalContext.current
     var roomName by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var serverResponse by remember { mutableStateOf("") }
@@ -60,7 +60,6 @@ fun CreateRoomScreen(navController: NavController) {
             .padding(16.dp),
         verticalArrangement = Arrangement.Center
     ) {
-        // Room Name Input
         TextField(
             value = roomName,
             onValueChange = { roomName = it },
@@ -68,17 +67,8 @@ fun CreateRoomScreen(navController: NavController) {
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
-
-        // Optional Password Input
-        TextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password (optional)") },
-            modifier = Modifier.fillMaxWidth()
-        )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Button to Create Room
         Button(
             onClick = {
                 createRoomRequest(context, roomName, password) { response ->
@@ -90,7 +80,6 @@ fun CreateRoomScreen(navController: NavController) {
             Text("Create Room")
         }
 
-        // Display Server Response
         Spacer(modifier = Modifier.height(16.dp))
         if (serverResponse.isNotEmpty()) {
             Text(

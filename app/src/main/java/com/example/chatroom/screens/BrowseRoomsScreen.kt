@@ -33,7 +33,6 @@ fun BrowseRoomsScreen(navController: NavController, context: Context) {
     var rooms by remember { mutableStateOf<List<RoomResponse>>(emptyList()) }
     val coroutineScope = rememberCoroutineScope()
 
-    // Funkcja do pobierania listy pokojów
     fun fetchRooms() {
         coroutineScope.launch {
             try {
@@ -45,7 +44,7 @@ fun BrowseRoomsScreen(navController: NavController, context: Context) {
                 val response: List<RoomResponse> = client.get("http://10.0.2.2:9090/getRooms") {
                     parameter("userId", userId)
                 }.body()
-                rooms = response // Aktualizacja listy pokojów
+                rooms = response
                 client.close()
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -53,11 +52,30 @@ fun BrowseRoomsScreen(navController: NavController, context: Context) {
         }
     }
 
-    // Automatyczne odświeżanie co 3 sekundy
+    fun leaveRoom(roomId: String) {
+        coroutineScope.launch {
+            try {
+                val client = HttpClient(CIO) {
+                    install(ContentNegotiation) {
+                        json()
+                    }
+                }
+                client.post("http://10.0.2.2:9090/leaveRoom") {
+                    parameter("userId", userId)
+                    parameter("roomId", roomId)
+                }
+                fetchRooms()
+                client.close()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
         while (true) {
             fetchRooms()
-            delay(3000L) // 3 sekundy
+            delay(3000L)
         }
     }
 
@@ -75,27 +93,44 @@ fun BrowseRoomsScreen(navController: NavController, context: Context) {
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(rooms) { room ->
-                RoomItem(room = room, onClick = {
-                    navController.navigate("chat/${room.id}") // Nawigacja do ekranu chatu
-                })
+                RoomItem(
+                    room = room,
+                    onJoinClick = { navController.navigate("chat/${room.id}") },
+                    onLeaveClick = { leaveRoom(room.id) }
+                )
             }
         }
     }
 }
 
 @Composable
-fun RoomItem(room: RoomResponse, onClick: () -> Unit) {
+fun RoomItem(
+    room: RoomResponse,
+    onJoinClick: () -> Unit,
+    onLeaveClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
-            .clickable { onClick() }, // Kliknięcie prowadzi do chatu
+            .padding(vertical = 8.dp),
         elevation = 4.dp
     ) {
-        Text(
-            text = room.name,
-            style = MaterialTheme.typography.body1,
-            modifier = Modifier.padding(16.dp)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = room.name,
+                style = MaterialTheme.typography.body1,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onJoinClick() }
+            )
+            Button(onClick = onLeaveClick) {
+                Text("Leave")
+            }
+        }
     }
 }

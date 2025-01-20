@@ -12,10 +12,18 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.chatroom.utils.FileUtils
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 
 @Composable
 fun SettingsScreen(navController: NavController) {
@@ -24,7 +32,6 @@ fun SettingsScreen(navController: NavController) {
     var oldSecret by remember { mutableStateOf(TextFieldValue("")) }
     var newUsername by remember { mutableStateOf(TextFieldValue("")) }
 
-    // Ładowanie secretPhrase z FileUtils
     LaunchedEffect(Unit) {
         secretPhrase = FileUtils.loadOrGenerateSecretPhrase(context)
     }
@@ -90,13 +97,26 @@ fun SettingsScreen(navController: NavController) {
             Button(onClick = {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        // Zmień nazwę użytkownika (tutaj można wywołać odpowiednie API)
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(context, "Username changed successfully!", Toast.LENGTH_SHORT).show()
+                        val client = HttpClient(CIO) {
+                            install(ContentNegotiation) { json() }
+                        }
+                        val response: HttpResponse = client.post("http://10.0.2.2:9090/changeUsername") {
+                            contentType(ContentType.Application.Json)
+                            setBody(ChangeUsernameRequest(secretPhrase, newUsername.text))
+                        }
+                        client.close()
+                        if (response.status == HttpStatusCode.OK) {
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(context, "Username changed successfully!", Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(context, "Failed to change username!", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(context, "Failed to change username: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -112,3 +132,9 @@ fun copyToClipboard(context: Context, text: String) {
     val clipData = android.content.ClipData.newPlainText("Secret Phrase", text)
     clipboardManager.setPrimaryClip(clipData)
 }
+
+@Serializable
+data class ChangeUsernameRequest(
+    val userId: String,
+    val newUsername: String
+)

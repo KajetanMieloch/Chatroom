@@ -1,10 +1,13 @@
 package com.example.chatroom.screens
 
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,14 +27,23 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import io.ktor.client.call.body
+import androidx.compose.foundation.lazy.rememberLazyListState
+
 
 @Composable
-fun ChatScreen(navController: NavController, roomId: String, context: Context, userId: String) {
+fun ChatScreen(
+    navController: NavController,
+    roomId: String,
+    context: Context,
+    userId: String
+) {
+    var chatName by remember { mutableStateOf("Loading...") }
     var message by remember { mutableStateOf("") }
     var messages by remember { mutableStateOf<List<Message>>(emptyList()) }
     val coroutineScope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
 
-    fun fetchMessages() {
+    fun fetchChatName() {
         coroutineScope.launch {
             try {
                 val client = HttpClient(CIO) {
@@ -39,10 +51,32 @@ fun ChatScreen(navController: NavController, roomId: String, context: Context, u
                         json()
                     }
                 }
+                val response: RoomResponse = client.get("http://10.0.2.2:9090/getRoom") {
+                    parameter("roomId", roomId)
+                }.body()
+                chatName = response.name
+                client.close()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                chatName = "Unknown Room"
+            }
+        }
+    }
+
+    fun fetchMessages() {
+        coroutineScope.launch {
+            try {
+                val client = HttpClient(CIO) {
+                    install(ContentNegotiation) { json() }
+                }
                 val response: List<Message> = client.get("http://10.0.2.2:9090/getMessages") {
                     parameter("roomId", roomId)
                 }.body()
                 messages = response
+
+                if (messages.isNotEmpty()) {
+                    listState.scrollToItem(messages.lastIndex)
+                }
                 client.close()
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -51,42 +85,58 @@ fun ChatScreen(navController: NavController, roomId: String, context: Context, u
     }
 
     fun sendMessage() {
-        coroutineScope.launch {
-            try {
-                val client = HttpClient(CIO) {
-                    install(ContentNegotiation) {
-                        json()
+        if (message.isNotBlank()) {
+            coroutineScope.launch {
+                try {
+                    val client = HttpClient(CIO) {
+                        install(ContentNegotiation) {
+                            json()
+                        }
                     }
+                    client.post("http://10.0.2.2:9090/sendMessage") {
+                        contentType(ContentType.Application.Json)
+                        setBody(SendMessageRequest(roomId, message, userId))
+                    }
+                    client.close()
+                    message = ""
+                    fetchMessages()
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
-                client.post("http://10.0.2.2:9090/sendMessage") {
-                    contentType(ContentType.Application.Json)
-                    setBody(SendMessageRequest(roomId, message, userId))
-                }
-                client.close()
-                message = ""
-                fetchMessages()
-            } catch (e: Exception) {
-                e.printStackTrace()
             }
         }
     }
 
+    fun copyRoomId() {
+        val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        val clipData = android.content.ClipData.newPlainText("Room ID", roomId)
+        clipboardManager.setPrimaryClip(clipData)
+        Toast.makeText(context, "Room ID copied: $roomId", Toast.LENGTH_SHORT).show()
+    }
+
     LaunchedEffect(Unit) {
-        while (true) {
-            fetchMessages()
-            delay(3000L)
-        }
+        fetchChatName()
+        fetchMessages()
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(top = 56.dp)
     ) {
+        TopAppBar(
+            title = { Text(text = chatName) },
+            actions = {
+                Button(onClick = { copyRoomId() }) {
+                    Icon(Icons.Default.Add, contentDescription = "Copy Room ID")
+                }
+            }
+        )
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth()
+                .fillMaxWidth(),
+            state = listState
         ) {
             items(messages) { msg ->
                 val isCurrentUser = msg.userId == userId
@@ -125,7 +175,7 @@ fun ChatScreen(navController: NavController, roomId: String, context: Context, u
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp),
+                .padding(8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             TextField(
